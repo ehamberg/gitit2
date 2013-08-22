@@ -20,7 +20,7 @@ module Network.Gitit2 ( GititConfig (..)
                       ) where
 
 import Prelude hiding (catch)
-import Control.Exception (catch)
+import Control.Exception (catch, throw, handle, try)
 import qualified Data.Map as M
 import Yesod hiding (MsgDelete)
 import Yesod.Static
@@ -56,7 +56,6 @@ import Data.Maybe (mapMaybe, isJust)
 import System.Random (randomRIO)
 import System.IO (Handle, withFile, IOMode(..))
 import System.IO.Error (isEOFError)
-import Control.Exception (throw, handle, try)
 import Text.Highlighting.Kate
 import Data.Time (getCurrentTime, addUTCTime)
 import Yesod.AtomFeed
