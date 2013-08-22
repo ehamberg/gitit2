@@ -607,7 +607,7 @@ searchResults patterns = do
   let relevance (f, ms) = length ms + if f `elem` pageNameMatches
                                          then 100
                                          else 0
-  let matches' = reverse $ sortBy (comparing relevance) matches
+  let matches' = sortBy (flip (comparing relevance)) matches
   let matches'' = map (\(f,c) -> (textToPage $ T.pack $ dropExtension f, c)) matches'
   toMaster <- getRouteToParent
   makePage pageLayout{ pgName = Nothing
