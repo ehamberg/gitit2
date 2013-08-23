@@ -268,7 +268,7 @@ makeDefaultPage layout content = do
   let searchRoute = toMaster SearchR
   let goRoute = toMaster GoR
   let tabClass :: Tab -> Text
-      tabClass t = if t == pgSelectedTab layout then "selected" else ""
+      tabClass t = if t == pgSelectedTab layout then "active" else ""
   let showTab t = t `elem` pgTabs layout
   printLayout <- lookupGetParam "print"
   exportFormats <- getExportFormats
@@ -324,7 +324,7 @@ makeDefaultPage layout content = do
        <div #maincol .col-md-8>
          <div #userbox>
          $maybe page <- pgName layout
-           <ul .tabs>
+           <ul .nav .nav-tabs>
              $if showTab ViewTab
                $if isDiscussPage page
                  <li class=#{tabClass ViewTab}>
