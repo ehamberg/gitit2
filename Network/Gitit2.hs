@@ -937,7 +937,7 @@ data Edit = Edit { editContents :: Textarea
 editForm :: HasGitit master
          => Maybe Edit
          -> Html
-         -> MForm Gitit master (FormResult Edit, GW master ())
+         -> MForm (HandlerT master IO) (FormResult Edit, GW master ())
 editForm mbedit = renderDivs $ Edit
     <$> areq textareaField (fieldSettingsLabel MsgPageSource)
            (editContents <$> mbedit)
@@ -1322,7 +1322,7 @@ data Upload = Upload { uploadFile        :: FileInfo
 uploadForm :: HasGitit master
            => Maybe Upload
            -> Html
-           -> MForm Gitit master (FormResult Upload, GW master ())
+           -> MForm (HandlerT master IO) (FormResult Upload, GW master ())
 uploadForm mbupload =
   renderDivs $ Upload
      <$> fileAFormReq (fieldSettingsLabel MsgFileToUpload){
