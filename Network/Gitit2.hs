@@ -73,11 +73,11 @@ infixr 5 <>
 -- Create GititMessages.
 mkMessage "Gitit" "messages" "en"
 
-type GH master a = GHandler Gitit master a
-type GW master a = GWidget Gitit master a
+type GH master a = HandlerT Gitit (HandlerT master IO) a
+type GW master a = WidgetT Gitit (WidgetT master IO) a
 
 data Plugin master = Plugin {
-       unPlugin :: WikiPage -> GHandler Gitit master WikiPage
+       unPlugin :: WikiPage -> GH master WikiPage
        }
 
 applyPlugin :: WikiPage -> Plugin master -> GH master WikiPage
@@ -89,9 +89,9 @@ applyPlugin wp pl = unPlugin pl wp
 class (Yesod master, RenderMessage master FormMessage,
        RenderMessage master GititMessage) => HasGitit master where
   -- | Return user information, if user is logged in, or nothing.
-  maybeUser   :: GHandler sub master (Maybe GititUser)
+  maybeUser   :: HandlerT sub (HandlerT master IO) (Maybe GititUser)
   -- | Return user information or redirect to login page.
-  requireUser :: GHandler sub master GititUser
+  requireUser :: HandlerT sub (HandlerT master IO) GititUser
   -- | Gitit subsite page layout.
   makePage :: PageLayout -> GW master () -> GH master RepHtml
   -- | Plugins.
@@ -1279,7 +1279,7 @@ basicExport templ contentType writer = \wikiPage -> do
               $ Pandoc (Meta (wpTitle wikiPage) [] []) $ wpContent wikiPage
   return (contentType, toContent rendered)
 
-setFilename :: Text -> GHandler sub master ()
+setFilename :: Text -> HandlerT sub (HandlerT master IO) ()
 setFilename fname = setHeader "Content-Disposition"
                   $ "attachment; filename=\"" <> fname <> "\""
 
