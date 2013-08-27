@@ -257,7 +257,7 @@ mkYesodSubData "Gitit" [parseRoutesNoCheck|
 |]
 
 getConfig :: GH master GititConfig
-getConfig = config <$> getYesodSub
+getConfig = config <$> getYesod
 
 makeDefaultPage :: HasGitit master => PageLayout -> GW master () -> GH master RepHtml
 makeDefaultPage layout content = do
@@ -420,7 +420,7 @@ isPageFile f = do
 
 allPageFiles :: GH master [FilePath]
 allPageFiles = do
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   liftIO (index fs) >>= filterM isPageFile
 
 isDiscussPageFile :: FilePath -> GH master Bool
@@ -455,7 +455,7 @@ getHelpR = do
 
 getRandomR :: HasGitit master => GH master RepHtml
 getRandomR = do
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   files <- liftIO $ index fs
   pages <- mapM pageForPath =<< filterM (fmap not . isDiscussPageFile)
                             =<<filterM isPageFile files
@@ -480,7 +480,7 @@ getRawR page = do
 getDeleteR :: HasGitit master => Page -> GH master RepHtml
 getDeleteR page = do
   requireUser
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   path <- pathForPage page
   pageTest <- liftIO $ try $ latest fs path
   fileToDelete <- case pageTest of
@@ -509,7 +509,7 @@ getDeleteR page = do
 postDeleteR :: HasGitit master => Page -> GH master RepHtml
 postDeleteR page = do
   user <- requireUser
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   toMaster <- getRouteToMaster
   mr <- getMessageRender
   fileToDelete <- runInputPost $ ireq textField "fileToDelete"
@@ -609,7 +609,7 @@ getIndexR (Page xs) = getIndexFor xs
 
 getIndexFor :: HasGitit master => [Text] -> GH master RepHtml
 getIndexFor paths = do
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   listing <- liftIO $ directory fs $ T.unpack $ T.intercalate "/" paths
   let isDiscussionPage (FSFile f) = isDiscussPageFile f
       isDiscussionPage (FSDirectory _) = return False
@@ -649,7 +649,7 @@ getRawContents :: HasGitit master
                -> Maybe RevisionId
                -> GH master (Maybe ByteString)
 getRawContents path rev = do
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   liftIO $ handle (\e -> if e == FS.NotFound then return Nothing else throw e)
          $ Just <$> retrieve fs path rev
 
@@ -730,7 +730,7 @@ mathjax_url = "http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-M
 
 toWikiPage :: HasGitit master => Html -> GW master ()
 toWikiPage rendered = do
-  cfg <- config <$> lift getYesodSub
+  cfg <- config <$> lift getYesod
   when (use_mathjax cfg) $ addScriptRemote mathjax_url
   toWidget rendered
 
@@ -757,7 +757,7 @@ postGoR = do
 
 searchResults :: HasGitit master => [Text] -> GH master RepHtml
 searchResults patterns = do
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   matchLines <- if null patterns
                    then return []
                    else liftIO $ search fs SearchQuery{
@@ -822,7 +822,7 @@ searchResults patterns = do
 getEditR :: HasGitit master => Page -> GH master RepHtml
 getEditR page = do
   requireUser
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   path <- pathForPage page
   mbcont <- getRawContents path Nothing
   let contents = case mbcont of
@@ -902,7 +902,7 @@ update' :: HasGitit master
 update' mbrevid page = do
   user <- requireUser
   ((result, widget), enctype) <- runFormPost $ editForm Nothing
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   toMaster <- getRouteToMaster
   let route = toMaster $ case mbrevid of
                   Just revid  -> UpdateR revid page
@@ -952,7 +952,7 @@ editForm mbedit = renderDivs $ Edit
 getDiffR :: HasGitit master
          => RevisionId -> RevisionId -> Page -> GH master RepHtml
 getDiffR fromRev toRev page = do
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   pagePath <- pathForPage page
   filePath <- pathForFile page
   rawDiff <- liftIO
@@ -981,7 +981,7 @@ getHistoryR :: HasGitit master
             => Int -> Page -> GH master RepHtml
 getHistoryR start page = do
   let items = 20 -- items per page
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   pagePath <- pathForPage page
   filePath <- pathForFile page
   path <- liftIO
@@ -1078,7 +1078,7 @@ getActivityR :: HasGitit master
 getActivityR start = do
   let items = 20
   let offset = start - 1
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   hist <- liftIO $ drop offset <$>
            history fs [] (TimeRange Nothing Nothing) (Just $ start + items)
   toMaster <- getRouteToMaster
@@ -1120,7 +1120,7 @@ feed mbpage = do
   days <- feed_days <$> getConfig
   toMaster <- getRouteToMaster
   mr <- getMessageRender
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   now <- liftIO getCurrentTime
   paths <- case mbpage of
                 Just p  -> (:[]) <$> pathForPage p
@@ -1347,7 +1347,7 @@ postUploadR :: HasGitit master => GH master RepHtml
 postUploadR = do
   user <- requireUser
   ((result, widget), enctype) <- runFormPost $ uploadForm Nothing
-  fs <- filestore <$> getYesodSub
+  fs <- filestore <$> getYesod
   toMaster <- getRouteToMaster
   case result of
        FormSuccess r -> do
