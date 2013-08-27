@@ -1398,17 +1398,18 @@ postExpireR page = do
   toMaster <- getRouteToParent
   redirect $ toMaster $ ViewR page
 
-caching :: HasReps a
-        => FilePath -> GH master a -> GH master a
-caching path handler = do
-  conf <- getConfig
-  if use_cache conf
-     then do
-       result <- handler
-       (ct, contents) <- liftIO $ chooseRep result []
-       cacheContent path (ct, contents)
-       return result
-     else handler
+caching = flip const -- FIXME
+--caching :: HasReps a
+--        => FilePath -> GH master a -> GH master a
+--caching path handler = do
+--  conf <- getConfig
+--  if use_cache conf
+--     then do
+--       result <- handler
+--       (ct, contents) <- liftIO $ chooseRep result []
+--       cacheContent path (ct, contents)
+--       return result
+--     else handler
 
 cacheContent :: FilePath -> (ContentType, Content) -> GH master ()
 cacheContent path (ct, content) = do
