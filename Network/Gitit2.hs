@@ -261,7 +261,7 @@ getConfig = config <$> getYesod
 
 makeDefaultPage :: HasGitit master => PageLayout -> GW master () -> GH master RepHtml
 makeDefaultPage layout content = do
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   let logoRoute = toMaster $ StaticR $ StaticRoute ["img","logo.png"] []
   let feedRoute = toMaster $ StaticR $ StaticRoute ["img","icons","feed.png"] []
   let searchRoute = toMaster SearchR
@@ -348,12 +348,12 @@ makeDefaultPage layout content = do
 -- | Convert links with no URL to wikilinks.
 convertWikiLinks :: Inline -> GH master Inline
 convertWikiLinks (Link ref ("", "")) = do
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   toUrl <- getUrlRender
   let route = ViewR $ textToPage $ T.pack $ stringify ref
   return $ Link ref (T.unpack $ toUrl $ toMaster route, "")
 convertWikiLinks (Image ref ("", "")) = do
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   toUrl <- getUrlRender
   let route = ViewR $ textToPage $ T.pack $ stringify ref
   return $ Image ref (T.unpack $ toUrl $ toMaster route, "")
@@ -461,7 +461,7 @@ getRandomR = do
                             =<<filterM isPageFile files
   pagenum <- liftIO $ randomRIO (0, length pages - 1)
   let thepage = pages !! pagenum
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   redirect $ toMaster $ ViewR thepage
 
 getRawR :: HasGitit master => Page -> GH master RepPlain
@@ -493,7 +493,7 @@ getDeleteR page = do
                               Left FS.NotFound  -> fail (show FS.NotFound)
                               Left e      -> fail (show e)
                        Left e        -> fail (show e)
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   makePage pageLayout{ pgName = Just page
                      , pgTabs = []
                      } $ do
@@ -510,7 +510,7 @@ postDeleteR :: HasGitit master => Page -> GH master RepHtml
 postDeleteR page = do
   user <- requireUser
   fs <- filestore <$> getYesod
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   mr <- getMessageRender
   fileToDelete <- runInputPost $ ireq textField "fileToDelete"
   liftIO $ FS.delete fs (T.unpack fileToDelete)
@@ -543,7 +543,7 @@ getRevisionR rev = view (Just rev)
 
 view :: HasGitit master => Maybe RevisionId -> Page -> GH master RepHtml
 view mbrev page = do
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   path <- pathForPage page
   mbcont <- getRawContents path mbrev
   case mbcont of
@@ -572,7 +572,7 @@ view mbrev page = do
                   let content = toContent contents
                   caching path' (return (ct, content)) >>= sendResponse
    where layout tabs categories cont = do
-           toMaster <- getRouteToMaster
+           toMaster <- getRouteToParent
            makePage pageLayout{ pgName = Just page
                               , pgPageTools = True
                               , pgTabs = tabs
@@ -615,7 +615,7 @@ getIndexFor paths = do
       isDiscussionPage (FSDirectory _) = return False
   prunedListing <- filterM (fmap not . isDiscussionPage) listing
   let updirs = inits $ filter (not . T.null) paths
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   let process (FSFile f) = do
         Page page <- pageForPath f
         ispage <- isPageFile f
@@ -749,7 +749,7 @@ postGoR = do
   let exactMatch f = gotopage == f
   let insensitiveMatch f = gotopage' == T.toLower f
   let prefixMatch f = gotopage' `T.isPrefixOf` T.toLower f
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   case (findPage exactMatch `mplus` findPage insensitiveMatch `mplus`
         findPage prefixMatch) of
        Just m  -> redirect $ toMaster $ ViewR $ textToPage m
@@ -787,7 +787,7 @@ searchResults patterns = do
                                          else 0
   let matches' = sortBy (flip (comparing relevance)) matches
   let matches'' = map (\(f,c) -> (textToPage $ T.pack $ dropExtension f, c)) matches'
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   makePage pageLayout{ pgName = Nothing
                      , pgTabs = []
                      , pgSelectedTab = EditTab } $ do
@@ -860,7 +860,7 @@ edit revert txt mbrevid page = do
   (form, enctype) <- generateFormPost $ editForm
                      $ Just Edit{ editContents = contents
                                 , editComment = comment }
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   let route = toMaster $ case mbrevid of
                     Just revid -> UpdateR revid page
                     Nothing    -> CreateR page
@@ -903,7 +903,7 @@ update' mbrevid page = do
   user <- requireUser
   ((result, widget), enctype) <- runFormPost $ editForm Nothing
   fs <- filestore <$> getYesod
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   let route = toMaster $ case mbrevid of
                   Just revid  -> UpdateR revid page
                   Nothing     -> CreateR page
@@ -993,7 +993,7 @@ getHistoryR start page = do
   hist <- liftIO $ drop offset <$>
            history fs [path] (TimeRange Nothing Nothing) (Just $ start + items)
   let hist' = zip [(1 :: Int)..] hist
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   let pageForwardLink = if length hist > items
                            then Just $ toMaster
                                      $ HistoryR (start + items) page
@@ -1044,7 +1044,7 @@ revisionDetails :: HasGitit master
                 => Revision
                 -> GW master ()
 revisionDetails rev = do
-  toMaster <- lift getRouteToMaster
+  toMaster <- lift getRouteToParent
   let toChange :: Change -> GH master (Text, Page)
       toChange (Modified f) = ("modified",) <$> pageForPath f
       toChange (Deleted  f) = ("deleted",)  <$> pageForPath f
@@ -1081,7 +1081,7 @@ getActivityR start = do
   fs <- filestore <$> getYesod
   hist <- liftIO $ drop offset <$>
            history fs [] (TimeRange Nothing Nothing) (Just $ start + items)
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   let pageForwardLink = if length hist > items
                            then Just $ toMaster
                                      $ ActivityR (start + items)
@@ -1118,7 +1118,7 @@ feed :: HasGitit master
      -> GH master (Feed (Route master))
 feed mbpage = do
   days <- feed_days <$> getConfig
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   mr <- getMessageRender
   fs <- filestore <$> getYesod
   now <- liftIO getCurrentTime
@@ -1293,7 +1293,7 @@ showUploadForm :: HasGitit master
                -> GW master ()
                -> GH master RepHtml
 showUploadForm enctype form = do
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   makePage pageLayout{ pgName = Nothing
                      , pgTabs = []
                      , pgSelectedTab = EditTab } $ do
@@ -1348,7 +1348,7 @@ postUploadR = do
   user <- requireUser
   ((result, widget), enctype) <- runFormPost $ uploadForm Nothing
   fs <- filestore <$> getYesod
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   case result of
        FormSuccess r -> do
          let fileinfo = uploadFile r
@@ -1395,7 +1395,7 @@ postExpireR page = do
        pathForPage page >>= expireCache
        pathForFile page >>= expireCache
      else return ()
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   redirect $ toMaster $ ViewR page
 
 caching :: HasReps a
@@ -1487,7 +1487,7 @@ getCategoriesR :: HasGitit master => GH master RepHtml
 getCategoriesR = do
   tryCache "_categories"
   conf <- getConfig
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   let repopath = repository_path conf
   allpages <- map (repopath </>) <$> allPageFiles
   allcategories <- liftIO $ nub . sort . concat <$> mapM readCategories allpages
@@ -1507,7 +1507,7 @@ getCategoryR category = do
   let cachepage = "_categories" </> T.unpack category
   tryCache cachepage
   conf <- getConfig
-  toMaster <- getRouteToMaster
+  toMaster <- getRouteToParent
   let repopath = repository_path conf
   allpages <- allPageFiles
   let hasCategory pg = elem category <$> readCategories (repopath </> pg)
