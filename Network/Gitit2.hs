@@ -223,8 +223,7 @@ data WikiPage = WikiPage {
 } deriving (Show)
 
 -- Create routes.
-mkYesodSub "Gitit" [ ClassP ''HasGitit [VarT $ mkName "master"]
- ] [parseRoutesNoCheck|
+mkYesodSubData "Gitit" [parseRoutesNoCheck|
 / HomeR GET
 /_help HelpR GET
 /_static StaticR Static getStatic
